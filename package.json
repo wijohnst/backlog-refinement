@@ -1,0 +1,29 @@
+{
+  "name": "backlog-refinement",
+  "version": "1.0.0",
+  "description": "Token-efficient GitHub issue refinement at scale using Claude",
+  "scripts": {
+    "test": "bats test/lib/*.bats test/integration/*.bats",
+    "test:unit": "bats test/lib/*.bats",
+    "test:integration": "bats test/integration/*.bats",
+    "test:watch": "find test -name '*.bats' | entr npm test",
+    "test:verbose": "bats -v test/lib/*.bats test/integration/*.bats"
+  },
+  "devDependencies": {
+    "bats": "^1.13.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/backlog-refinement.git"
+  },
+  "keywords": [
+    "github",
+    "issues",
+    "refinement",
+    "claude",
+    "backlog",
+    "token-efficient"
+  ],
+  "author": "",
+  "license": "MIT"
+}

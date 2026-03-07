@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Refinement system
+refinement-log.json.lock
+.local/
+
+# OS files
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+tmp/
+test_tmp/
+
+# IDE
+.vscode/
+.idea/
+*.iml

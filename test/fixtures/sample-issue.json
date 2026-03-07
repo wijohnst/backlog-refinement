@@ -1,0 +1,13 @@
+{
+  "number": 123,
+  "title": "User authentication overhaul",
+  "body": "# Overview\nWe need to update authentication\n\nblocks #124\ndepends on #120",
+  "created_at": "2026-02-01T10:00:00Z",
+  "updated_at": "2026-03-05T11:00:00Z",
+  "state": "open",
+  "labels": [
+    {
+      "name": "needs-refinement"
+    }
+  ]
+}

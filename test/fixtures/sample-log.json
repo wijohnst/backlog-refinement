@@ -1,0 +1,44 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "repo": "test/repo",
+    "initialized_at": "2026-02-01T10:00:00Z",
+    "last_check": "2026-03-05T10:00:00Z",
+    "last_refinement": "2026-02-28T10:00:00Z"
+  },
+  "app_state": {
+    "timestamp": "2026-03-05T10:00:00Z",
+    "git_sha": "abc123def456",
+    "deployed_version": "1.2.3",
+    "completed_stories": ["GH-95", "GH-100"],
+    "recent_adrs": []
+  },
+  "stories": {
+    "GH-123": {
+      "number": 123,
+      "title": "User authentication overhaul",
+      "refinement_status": "dev-ready",
+      "refinement_reasons": [],
+      "last_refined": "2026-02-28T10:00:00Z",
+      "body_hash": "abc123",
+      "dependencies": {
+        "blocks": [124],
+        "blocked_by": [120],
+        "relates_to": []
+      }
+    },
+    "GH-124": {
+      "number": 124,
+      "title": "Session management",
+      "refinement_status": "new",
+      "refinement_reasons": [],
+      "last_refined": null,
+      "body_hash": null,
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [123],
+        "relates_to": []
+      }
+    }
+  }
+}
