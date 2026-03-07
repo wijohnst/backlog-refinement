@@ -3,10 +3,13 @@
 
 set -euo pipefail
 
-# Source common utilities
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/common.sh"
-source "$SCRIPT_DIR/github-api.sh"
+# Guard against re-sourcing
+[[ -n "${_REFINE_APP_STATE_LOADED:-}" ]] && return 0
+_REFINE_APP_STATE_LOADED=1
+
+# Source libraries (guard against re-sourcing)
+[[ -z "${_REFINE_COMMON_LOADED:-}" ]] && source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+[[ -z "${_REFINE_GITHUB_API_LOADED:-}" ]] && source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/github-api.sh"
 
 # =============================================================================
 # GIT FUNCTIONS
@@ -43,7 +46,7 @@ get_recent_closed_stories() {
   # Calculate cutoff date (ISO 8601)
   local cutoff_date
   if [[ "$(uname)" == "Darwin" ]]; then
-    cutoff_date=$(date -u -v-${days}d "+%Y-%m-%dT%H:%M:%SZ")
+    cutoff_date=$(date -u -v-"${days}"d "+%Y-%m-%dT%H:%M:%SZ")
   else
     cutoff_date=$(date -u -d "$days days ago" "+%Y-%m-%dT%H:%M:%SZ")
   fi
@@ -87,7 +90,7 @@ get_recent_modified_adr_files() {
 
   local cutoff_time
   if [[ "$(uname)" == "Darwin" ]]; then
-    cutoff_time=$(date -j -v-${days}d "+%Y%m%d%H%M%S")
+    cutoff_time=$(date -j -v-"${days}"d "+%Y%m%d%H%M%S")
   else
     cutoff_time=$(date -d "$days days ago" "+%Y%m%d%H%M%S")
   fi

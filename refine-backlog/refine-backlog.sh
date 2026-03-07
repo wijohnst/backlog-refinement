@@ -298,7 +298,7 @@ cmd_refine() {
 
   # Acquire lock
   acquire_lock "$LOCK_FILE"
-  trap "release_lock '$LOCK_FILE'" EXIT
+  trap 'release_lock "$LOCK_FILE"' EXIT
 
   local repo
   repo=$(github_repo)
@@ -325,8 +325,8 @@ cmd_refine() {
   log_info "Stories to refine: $stories_to_refine"
 
   # Batch stories into chunks
-  local IFS=','
-  local story_array=($stories_to_refine)
+  local story_array=()
+  IFS=',' read -ra story_array <<< "$stories_to_refine"
   local total_stories=${#story_array[@]}
 
   log_info "Processing $total_stories story(stories) in batches of $BATCH_SIZE..."

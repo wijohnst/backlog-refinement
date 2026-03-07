@@ -3,6 +3,10 @@
 
 set -euo pipefail
 
+# Guard against re-sourcing
+[[ -n "${_REFINE_COMMON_LOADED:-}" ]] && return 0
+_REFINE_COMMON_LOADED=1
+
 # =============================================================================
 # LOGGING
 # =============================================================================
@@ -262,16 +266,16 @@ current_iso_time() {
 # Days since timestamp (ISO format)
 days_since() {
   local iso_date="$1"
-  local then
-  then=$(iso_to_epoch "$iso_date")
-  if [[ "$then" == "0" ]]; then
+  local then_epoch
+  then_epoch=$(iso_to_epoch "$iso_date")
+  if [[ "$then_epoch" == "0" ]]; then
     echo "999"  # Return large number if parse failed
     return 1
   fi
 
   local now
   now=$(date +%s)
-  local diff=$((now - then))
+  local diff=$((now - then_epoch))
   local days=$((diff / 86400))
   echo "$days"
 }
