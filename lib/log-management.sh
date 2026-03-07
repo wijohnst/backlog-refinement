@@ -99,7 +99,9 @@ add_story_to_log() {
   log=$(load_log "$log_path") || return 1
 
   local body_hash
-  body_hash=$(echo "$issue_json" | jq -r '.body // ""' | sha256sum | cut -d' ' -f1)
+  local body_text
+  body_text=$(echo "$issue_json" | jq -r '.body // ""')
+  body_hash=$(hash_string "$body_text")
 
   local story_key="GH-$story_number"
 
@@ -176,7 +178,7 @@ update_story_refinement() {
   timestamp=$(current_iso_time)
 
   local body_hash
-  body_hash=$(echo "$refined_body" | sha256sum | cut -d' ' -f1)
+  body_hash=$(hash_string "$refined_body")
 
   # Update story with dev-ready status
   log=$(echo "$log" | jq \
@@ -204,8 +206,12 @@ update_app_state_in_log() {
   local log
   log=$(load_log "$log_path") || return 1
 
+  # Compact JSON to single line to avoid jq --argjson issues
+  local app_state_compact
+  app_state_compact=$(echo "$app_state_json" | jq -c '.')
+
   log=$(echo "$log" | jq \
-    --argjson app_state "$app_state_json" \
+    --argjson app_state "$app_state_compact" \
     '.app_state = $app_state')
 
   # Update last_check timestamp

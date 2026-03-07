@@ -5,8 +5,8 @@ setup() {
   load ../test_helper
   load_common
   load_mocks
-  source "$REFINE_BACKLOG_DIR/lib/log-management.sh"
-  source "$REFINE_BACKLOG_DIR/lib/backlog-analysis.sh"
+  source "$REPO_DIR/lib/log-management.sh"
+  source "$REPO_DIR/lib/backlog-analysis.sh"
   setup_test_env
 }
 
@@ -61,8 +61,8 @@ teardown() {
   local old_body="Old body content"
   local new_body="New body content"
 
-  local old_hash=$(echo -n "$old_body" | sha256sum | cut -d' ' -f1)
-  local new_hash=$(echo -n "$new_body" | sha256sum | cut -d' ' -f1)
+  local old_hash=$(hash_string "$old_body")
+  local new_hash=$(hash_string "$new_body")
 
   local issue_json="{
     \"number\": 123,
@@ -83,7 +83,7 @@ teardown() {
 
 @test "reasons_for_story returns empty for unchanged story" {
   local body="Test body"
-  local body_hash=$(echo -n "$body" | sha256sum | cut -d' ' -f1)
+  local body_hash=$(hash_string "$body")
 
   local issue_json="{
     \"number\": 123,

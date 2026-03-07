@@ -201,6 +201,22 @@ file_hash() {
   echo "$hash"
 }
 
+hash_string() {
+  local string="$1"
+
+  local hash
+  if command -v shasum &> /dev/null; then
+    hash=$(echo -n "$string" | /usr/bin/shasum -a 256 | cut -d' ' -f1) || hash=""
+  fi
+
+  # Fall back to sha256sum if shasum failed
+  if [[ -z "$hash" ]] && command -v sha256sum &> /dev/null; then
+    hash=$(echo -n "$string" | sha256sum | cut -d' ' -f1) || hash=""
+  fi
+
+  echo "$hash"
+}
+
 # =============================================================================
 # LOCKING
 # =============================================================================
@@ -289,6 +305,6 @@ export -f log_info log_warn log_error log_debug log_success
 export -f fail require_command require_env
 export -f github_token anthropic_api_key github_repo log_level
 export -f json_validate jq_filter json_to_var
-export -f ensure_file ensure_dir file_hash
+export -f ensure_file ensure_dir file_hash hash_string
 export -f acquire_lock release_lock
 export -f iso_to_epoch current_iso_time days_since

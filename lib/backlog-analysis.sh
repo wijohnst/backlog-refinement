@@ -63,7 +63,7 @@ reasons_for_story() {
       local current_body
       current_body=$(echo "$issue_json" | jq -r '.body // ""')
       local current_hash
-      current_hash=$(echo -n "$current_body" | sha256sum | cut -d' ' -f1)
+      current_hash=$(hash_string "$current_body")
 
       if [[ "$current_hash" != "$last_body_hash" ]]; then
         reasons=$(echo "$reasons" | jq \

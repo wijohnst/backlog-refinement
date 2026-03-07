@@ -5,7 +5,7 @@ setup() {
   load ../test_helper
   load_common
   load_mocks
-  source "$REFINE_BACKLOG_DIR/lib/github-api.sh"
+  source "$REPO_DIR/lib/github-api.sh"
 }
 
 # =============================================================================
