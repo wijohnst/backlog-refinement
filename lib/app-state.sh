@@ -65,7 +65,10 @@ get_recent_closed_stories() {
       break
     fi
 
-    closed_issues=$(jq -n --argjson prev "$closed_issues" --argjson new "$response" '$prev + $new')
+    # Compact JSON before passing to jq to avoid newline issues
+    local response_compact
+    response_compact=$(echo "$response" | jq -c '.')
+    closed_issues=$(jq -n --argjson prev "$closed_issues" --argjson new "$response_compact" '$prev + $new')
     ((page++))
   done
 

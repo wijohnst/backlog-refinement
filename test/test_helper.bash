@@ -4,7 +4,7 @@
 # Get absolute paths
 TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$TEST_DIR/.." && pwd)"
-REFINE_BACKLOG_DIR="$REPO_DIR/refine-backlog"
+# Project root is now at REPO_DIR (lib/, scripts/, bin/ are at root level)
 
 # Ensure we're in the repo directory for relative paths to work
 cd "$REPO_DIR" || exit 1
@@ -51,17 +51,17 @@ load_mocks() {
 
 # Load common.sh from repo
 load_common() {
-  source "$REFINE_BACKLOG_DIR/lib/common.sh"
+  source "$REPO_DIR/lib/common.sh"
 }
 
 # Load all libraries
 load_libs() {
   load_common
-  source "$REFINE_BACKLOG_DIR/lib/github-api.sh"
-  source "$REFINE_BACKLOG_DIR/lib/app-state.sh"
-  source "$REFINE_BACKLOG_DIR/lib/log-management.sh"
-  source "$REFINE_BACKLOG_DIR/lib/backlog-analysis.sh"
-  source "$REFINE_BACKLOG_DIR/lib/context-gathering.sh"
+  source "$REPO_DIR/lib/github-api.sh"
+  source "$REPO_DIR/lib/app-state.sh"
+  source "$REPO_DIR/lib/log-management.sh"
+  source "$REPO_DIR/lib/backlog-analysis.sh"
+  source "$REPO_DIR/lib/context-gathering.sh"
 }
 
 # Assert that a function exists and is callable
@@ -106,4 +106,4 @@ json_get() {
 export -f setup_test_env teardown_test_env init_test_git_repo copy_fixture
 export -f load_mocks load_common load_libs
 export -f assert_function_exists assert_valid_json assert_json_has_key json_get
-export TEST_DIR REPO_DIR REFINE_BACKLOG_DIR
+export TEST_DIR REPO_DIR
