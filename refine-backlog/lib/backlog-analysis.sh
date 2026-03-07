@@ -3,11 +3,14 @@
 
 set -euo pipefail
 
-# Source common utilities
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/common.sh"
-source "$SCRIPT_DIR/github-api.sh"
-source "$SCRIPT_DIR/log-management.sh"
+# Guard against re-sourcing
+[[ -n "${_REFINE_BACKLOG_ANALYSIS_LOADED:-}" ]] && return 0
+_REFINE_BACKLOG_ANALYSIS_LOADED=1
+
+# Source libraries
+[[ -z "${_REFINE_COMMON_LOADED:-}" ]] && source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+[[ -z "${_REFINE_GITHUB_API_LOADED:-}" ]] && source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/github-api.sh"
+[[ -z "${_REFINE_LOG_MANAGEMENT_LOADED:-}" ]] && source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/log-management.sh"
 
 # =============================================================================
 # REFINEMENT DETECTION
@@ -142,11 +145,15 @@ analyze_backlog() {
     local reasons
     reasons=$(reasons_for_story "$issue_json" "$log_entry")
 
+    # Compact JSON to avoid jq --argjson issues with newlines
+    local reasons_compact
+    reasons_compact=$(echo "$reasons" | jq -c '.')
+
     # Determine status
     if [[ "$log_entry" == "null" ]]; then
-      echo "$item" | jq --argjson reasons "$reasons" '. + {reasons: $reasons, status: "new"}'
+      echo "$item" | jq --argjson reasons "$reasons_compact" '. + {reasons: $reasons, status: "new"}'
     elif [[ "$reasons" != "[]" ]]; then
-      echo "$item" | jq --argjson reasons "$reasons" '. + {reasons: $reasons, status: "needs-refinement"}'
+      echo "$item" | jq --argjson reasons "$reasons_compact" '. + {reasons: $reasons, status: "needs-refinement"}'
     else
       echo "$item" | jq '. + {status: "dev-ready"}'
     fi
