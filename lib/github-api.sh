@@ -3,9 +3,12 @@
 
 set -euo pipefail
 
+# Guard against re-sourcing
+[[ -n "${_REFINE_GITHUB_API_LOADED:-}" ]] && return 0
+_REFINE_GITHUB_API_LOADED=1
+
 # Source common utilities
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/common.sh"
+[[ -z "${_REFINE_COMMON_LOADED:-}" ]] && source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 
 # =============================================================================
 # GITHUB API HELPERS

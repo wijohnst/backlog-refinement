@@ -3,11 +3,14 @@
 
 set -euo pipefail
 
-# Source common utilities
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/common.sh"
-source "$SCRIPT_DIR/github-api.sh"
-source "$SCRIPT_DIR/log-management.sh"
+# Guard against re-sourcing
+[[ -n "${_REFINE_CONTEXT_GATHERING_LOADED:-}" ]] && return 0
+_REFINE_CONTEXT_GATHERING_LOADED=1
+
+# Source libraries
+[[ -z "${_REFINE_COMMON_LOADED:-}" ]] && source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+[[ -z "${_REFINE_GITHUB_API_LOADED:-}" ]] && source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/github-api.sh"
+[[ -z "${_REFINE_LOG_MANAGEMENT_LOADED:-}" ]] && source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/log-management.sh"
 
 # =============================================================================
 # FILE DISCOVERY

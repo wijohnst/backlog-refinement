@@ -3,8 +3,9 @@
 
 set -euo pipefail
 
-# Determine script directory
+# Determine script directory and project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Colors
 RED='\033[0;31m'
@@ -163,7 +164,7 @@ CONFIG
 
   local cli_symlink="${bin_dir}/refine-backlog"
   if [[ ! -L "$cli_symlink" ]]; then
-    ln -s "${SCRIPT_DIR}/refine-backlog.sh" "$cli_symlink"
+    ln -s "${PROJECT_ROOT}/bin/refine-backlog" "$cli_symlink"
     chmod +x "$cli_symlink"
     log_success "Created CLI symlink: $cli_symlink"
 
@@ -184,8 +185,8 @@ CONFIG
     log_info "Initializing refinement log..."
 
     # Source common.sh to use init_log function
-    source "${SCRIPT_DIR}/lib/common.sh"
-    source "${SCRIPT_DIR}/lib/log-management.sh"
+    source "${PROJECT_ROOT}/lib/common.sh"
+    source "${PROJECT_ROOT}/lib/log-management.sh"
 
     init_log "$repo" "$log_file"
     log_success "Created refinement log: $log_file"
@@ -197,7 +198,7 @@ CONFIG
 
   # Step 5: Install Claude skill
   if [[ $install_skill -eq 1 ]]; then
-    local skill_src="${SCRIPT_DIR}/skills/refine-backlog.md"
+    local skill_src="${PROJECT_ROOT}/skills/refine-backlog.md"
     local skill_dest="${HOME}/.claude/commands/refine-backlog.md"
 
     if [[ ! -d "${HOME}/.claude/commands" ]]; then

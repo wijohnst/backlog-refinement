@@ -28,17 +28,37 @@ git clone https://github.com/wijohnst/backlog-refinement.git
 cd backlog-refinement
 ```
 
-2. **Initialize in your target repository**:
+2. **Install the CLI** (one-time):
 ```bash
-cd /path/to/your/github/repo
-/path/to/backlog-refinement/refine-backlog/init-refine-backlog.sh
+# Option A: Using Make
+make install
+
+# Option B: Manual
+ln -s "$(pwd)/bin/refine-backlog" ~/.local/bin/refine-backlog
+export PATH="$HOME/.local/bin:$PATH"  # Add to .zshrc or .bashrc to persist
 ```
 
-This will prompt you to set:
-- `GITHUB_TOKEN`: Your GitHub personal access token
-- `ANTHROPIC_API_KEY`: Your Anthropic API key
+3. **Initialize in your target repository**:
+```bash
+cd /path/to/your/github/repo
+/path/to/backlog-refinement/scripts/init-refine-backlog
+```
 
-3. **Verify setup**:
+This will:
+- Create `~/.local/refine-backlog.conf` (stores API tokens)
+- Initialize `refinement-log.json` in your repo
+- Install the Claude skill definition
+
+4. **Configure API tokens**:
+
+Edit `~/.local/refine-backlog.conf`:
+```bash
+GITHUB_TOKEN="your_github_token_here"
+ANTHROPIC_API_KEY="your_anthropic_api_key_here"
+GITHUB_REPO="owner/repo"
+```
+
+5. **Verify setup**:
 ```bash
 refine-backlog check
 ```
@@ -144,6 +164,31 @@ The system recognizes two special labels:
 
 - **`needs-refinement`**: Marks a story as needing clarification. The system will automatically detect and refine these.
 - **Detected automatically**: Stories missing in the refinement log, or with changed bodies, or blocked by merged dependencies.
+
+## Project Structure
+
+```
+backlog-refinement/
+├── bin/
+│   └── refine-backlog           # Main CLI entry point
+├── lib/
+│   ├── common.sh                # Logging, utilities, config
+│   ├── github-api.sh            # GitHub API wrapper
+│   ├── app-state.sh             # Git state & version detection
+│   ├── log-management.sh        # refinement-log.json CRUD
+│   ├── backlog-analysis.sh      # Identify stories needing refinement
+│   └── context-gathering.sh     # Find ADRs, plans, related stories
+├── scripts/
+│   └── init-refine-backlog      # One-time setup for a repo
+├── skills/
+│   └── refine-backlog.md        # Claude skill definition
+├── test/                         # Unit & integration tests
+├── docs/                         # Architecture & design docs
+├── Makefile                      # Install/test/clean targets
+├── README.md                     # This file
+├── CLAUDE.md                     # Project guidelines
+└── package.json                  # Test runner (bats)
+```
 
 ## How It Works
 

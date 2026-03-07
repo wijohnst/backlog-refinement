@@ -5,14 +5,15 @@ set -euo pipefail
 
 # Determine script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Source all library modules
-source "$SCRIPT_DIR/lib/common.sh"
-source "$SCRIPT_DIR/lib/github-api.sh"
-source "$SCRIPT_DIR/lib/app-state.sh"
-source "$SCRIPT_DIR/lib/log-management.sh"
-source "$SCRIPT_DIR/lib/backlog-analysis.sh"
-source "$SCRIPT_DIR/lib/context-gathering.sh"
+source "$PROJECT_ROOT/lib/common.sh"
+source "$PROJECT_ROOT/lib/github-api.sh"
+source "$PROJECT_ROOT/lib/app-state.sh"
+source "$PROJECT_ROOT/lib/log-management.sh"
+source "$PROJECT_ROOT/lib/backlog-analysis.sh"
+source "$PROJECT_ROOT/lib/context-gathering.sh"
 
 # Configuration
 readonly LOG_FILE="${LOG_FILE:-.}/refinement-log.json"

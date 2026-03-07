@@ -3,9 +3,12 @@
 
 set -euo pipefail
 
+# Guard against re-sourcing
+[[ -n "${_REFINE_LOG_MANAGEMENT_LOADED:-}" ]] && return 0
+_REFINE_LOG_MANAGEMENT_LOADED=1
+
 # Source common utilities
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/common.sh"
+[[ -z "${_REFINE_COMMON_LOADED:-}" ]] && source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 
 # =============================================================================
 # LOG INITIALIZATION
