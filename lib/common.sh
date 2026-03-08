@@ -149,6 +149,7 @@ log_level() {
 json_validate() {
   local json="$1"
   echo "$json" | jq empty 2>/dev/null
+  return $?
 }
 
 jq_filter() {

@@ -110,7 +110,11 @@ get_recent_modified_adr_files() {
   done
 
   # Return unique files as compact JSON array
-  printf '%s\n' "${found_files[@]}" | sort -u | jq -R '.' | jq -s -c '.'
+  if [[ ${#found_files[@]} -gt 0 ]]; then
+    printf '%s\n' "${found_files[@]}" | sort -u | jq -R '.' | jq -s -c '.'
+  else
+    echo "[]"
+  fi
 }
 
 # =============================================================================

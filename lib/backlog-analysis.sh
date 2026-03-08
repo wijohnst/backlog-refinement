@@ -83,16 +83,21 @@ reasons_for_story() {
 
     if [[ "$blocked_by" != "[]" ]]; then
       # Check each blocker - if it's closed, this should be re-refined
-      # (Simplified: we'd need to call GitHub for each, so we flag it)
       local has_closed_blocker=0
       local blockers_to_check
       blockers_to_check=$(echo "$blocked_by" | jq -r '.[]')
+      local repo
+      repo=$(github_repo)
 
       while IFS= read -r blocker_num; do
-        # In a full implementation, would check if issue $blocker_num is closed
-        # For now, flag as potential
-        has_closed_blocker=1
-        break
+        if [[ -n "$blocker_num" ]]; then
+          local blocker_state
+          blocker_state=$(github_get_issue "$repo" "$blocker_num" 2>/dev/null | jq -r '.state // "open"')
+          if [[ "$blocker_state" == "closed" ]]; then
+            has_closed_blocker=1
+            break
+          fi
+        fi
       done <<< "$blockers_to_check"
 
       if [[ $has_closed_blocker -eq 1 ]]; then

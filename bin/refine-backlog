@@ -92,7 +92,7 @@ call_claude_api() {
 
   local payload
   payload=$(jq -n \
-    --arg model "claude-opus-4-6" \
+    --arg model "claude-opus-4-5" \
     --arg system "$system_prompt" \
     --arg user "$user_prompt" \
     '{

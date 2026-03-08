@@ -65,7 +65,11 @@ find_adr_files() {
   fi
 
   # Convert to JSON array with unique values
-  printf '%s\n' "${files[@]}" | sort -u | jq -R '.' | jq -s '.'
+  if [[ ${#files[@]} -gt 0 ]]; then
+    printf '%s\n' "${files[@]}" | sort -u | jq -R '.' | jq -s '.'
+  else
+    echo "[]"
+  fi
 }
 
 find_plan_files() {
@@ -92,7 +96,11 @@ find_plan_files() {
   done
 
   # Remove duplicates, limit to 10, and convert to JSON array
-  printf '%s\n' "${files[@]}" | sort -u | head -10 | jq -R '.' | jq -s '.'
+  if [[ ${#files[@]} -gt 0 ]]; then
+    printf '%s\n' "${files[@]}" | sort -u | head -10 | jq -R '.' | jq -s '.'
+  else
+    echo "[]"
+  fi
 }
 
 # =============================================================================

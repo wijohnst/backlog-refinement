@@ -18,6 +18,7 @@ _github_api_call() {
   local method="$1"
   local endpoint="$2"
   local data="${3:-}"
+  local retry_count="${4:-0}"
   local token
   token=$(github_token)
 
@@ -39,11 +40,16 @@ _github_api_call() {
 
   # Handle rate limiting
   if [[ "$http_code" == "429" ]]; then
-    log_warn "GitHub API rate limit exceeded. Waiting 60s before retry..."
-    sleep 60
-    # Recursive retry
-    _github_api_call "$method" "$endpoint" "$data"
-    return
+    if [[ $retry_count -lt 3 ]]; then
+      log_warn "GitHub API rate limit exceeded (attempt $((retry_count + 1))/3). Waiting 60s before retry..."
+      sleep 60
+      _github_api_call "$method" "$endpoint" "$data" "$((retry_count + 1))"
+      return
+    else
+      log_error "GitHub API rate limit exceeded after 3 retries"
+      echo "{}" >&2
+      return 1
+    fi
   fi
 
   # Handle errors
