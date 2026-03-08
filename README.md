@@ -41,21 +41,39 @@ export PATH="$HOME/.local/bin:$PATH"  # Add to .zshrc or .bashrc to persist
 3. **Initialize in your target repository**:
 ```bash
 cd /path/to/your/github/repo
-/path/to/backlog-refinement/scripts/init-refine-backlog
+
+# Option A: Run init script directly
+/path/to/backlog-refinement/scripts/init-refine-backlog \
+  --repo owner/repo \
+  --token ghp_xxxxxxxxxxxx \
+  --api-key sk-ant-xxxxxxxxxxxx
+
+# Option B: Use make from backlog-refinement directory
+cd /path/to/backlog-refinement
+make init REPO=owner/repo GITHUB_TOKEN=ghp_xxxxxxxxxxxx ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxx
 ```
 
 This will:
-- Create `~/.local/refine-backlog.conf` (stores API tokens)
-- Initialize `refinement-log.json` in your repo
-- Install the Claude skill definition
+- Create `~/.local/refine-backlog.conf` (stores API tokens, shared across all repos)
+- Initialize `refinement-log.json` in your repo (version-controlled, only `.lock` is gitignored)
+- Install the Claude skill definition to `~/.claude/commands/`
 
-4. **Configure API tokens**:
+4. **API Token Sources**:
 
-Edit `~/.local/refine-backlog.conf`:
+Obtain your tokens from:
+- **GitHub Token**: https://github.com/settings/tokens → Generate new token (classic) → Check `repo` scope
+- **Anthropic API Key**: https://console.anthropic.com/ → API Keys section
+
+Store them in `~/.local/refine-backlog.conf`:
 ```bash
-GITHUB_TOKEN="your_github_token_here"
-ANTHROPIC_API_KEY="your_anthropic_api_key_here"
-GITHUB_REPO="owner/repo"
+GITHUB_TOKEN="ghp_xxxxxxxxxxxx"
+ANTHROPIC_API_KEY="sk-ant-xxxxxxxxxxxx"
+GITHUB_REPO="owner/repo"  # Can be overridden per-command with env var
+```
+
+**Note**: `GITHUB_REPO` is stored globally but can be overridden:
+```bash
+GITHUB_REPO=other/repo refine-backlog check
 ```
 
 5. **Verify setup**:
@@ -357,7 +375,10 @@ export GITHUB_TOKEN="your_token_here"
 
 You haven't initialized the repo yet.
 
-**Fix**: Run `refine-backlog init` in your target repository.
+**Fix**: Run the init script in your target repository:
+```bash
+/path/to/backlog-refinement/scripts/init-refine-backlog --repo owner/repo --token $GITHUB_TOKEN --api-key $ANTHROPIC_API_KEY
+```
 
 ### "jq: invalid JSON text passed to --argjson"
 
