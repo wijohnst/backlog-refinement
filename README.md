@@ -68,12 +68,15 @@ Store them in `~/.local/refine-backlog.conf`:
 ```bash
 GITHUB_TOKEN="ghp_xxxxxxxxxxxx"
 ANTHROPIC_API_KEY="sk-ant-xxxxxxxxxxxx"
-GITHUB_REPO="owner/repo"  # Can be overridden per-command with env var
+GITHUB_REPO="owner/repo"
 ```
 
-**Note**: `GITHUB_REPO` is stored globally but can be overridden:
+**Note**: All three can be overridden per-command with environment variables:
 ```bash
+# Override for a single command
 GITHUB_REPO=other/repo refine-backlog check
+ANTHROPIC_API_KEY=sk-ant-other refine-backlog refine --all
+GITHUB_TOKEN=ghp_other refine-backlog status
 ```
 
 5. **Verify setup**:
@@ -395,6 +398,15 @@ GitHub or Anthropic API rate limits were hit.
 - Anthropic: https://console.anthropic.com/
 
 ## Advanced Configuration
+
+### Environment Variable Priority
+
+All configuration values can come from environment variables (highest priority) or `~/.local/refine-backlog.conf` (fallback):
+
+```bash
+# Env vars override config file
+GITHUB_TOKEN=ghp_xxx ANTHROPIC_API_KEY=sk-ant-xxx GITHUB_REPO=owner/repo refine-backlog check
+```
 
 ### Custom Batch Size
 
