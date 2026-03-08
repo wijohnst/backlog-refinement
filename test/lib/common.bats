@@ -228,6 +228,7 @@ setup() {
 @test "github_repo extracts from git remote" {
   setup_test_env
   init_test_git_repo
+  unset GITHUB_REPO  # Ensure fallback to git remote detection
 
   result=$(github_repo)
   [ "$result" = "test/repo" ]

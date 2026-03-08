@@ -103,6 +103,7 @@ teardown() {
 
 @test "detects git remote for repository" {
   init_test_git_repo
+  unset GITHUB_REPO  # Ensure fallback to git remote detection
 
   load_libs
 

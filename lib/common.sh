@@ -123,9 +123,11 @@ github_repo() {
     local remote_url
     remote_url=$(git config --get remote.origin.url 2>/dev/null || echo "")
     if [[ -n "$remote_url" ]]; then
-      # Extract owner/repo from https://github.com/owner/repo or git@github.com:owner/repo
-      if [[ "$remote_url" =~ github\.com[:/]([^/]+)/(.+)\.git$ ]]; then
-        echo "${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
+      # Extract owner/repo from https://github.com/owner/repo.git or git@github.com:owner/repo.git
+      local repo_path
+      repo_path=$(echo "$remote_url" | sed 's|.*github\.com[:/]\([^/]*\)/\(.*\)\.git$|\1/\2|')
+      if [[ "$repo_path" != "$remote_url" ]]; then
+        echo "$repo_path"
         return 0
       fi
     fi
