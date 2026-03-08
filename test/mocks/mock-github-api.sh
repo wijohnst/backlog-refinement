@@ -72,8 +72,9 @@ EOF
 }
 
 # Mock get_deployed_version
-get_deployed_version() {
+_get_deployed_version_mock() {
   echo "1.2.3"
 }
 
-export -f github_token github_repo _github_api_call get_deployed_version
+export -f github_token github_repo _github_api_call
+export -f _get_deployed_version_mock

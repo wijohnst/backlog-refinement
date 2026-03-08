@@ -136,6 +136,11 @@ github_get_issue_links() {
     relates_to=$(echo "$body" | grep -oE "(relates\s+to|related\s+to)\s+#[0-9]+" | grep -oE "[0-9]+" | jq -R 'tonumber' | jq -s '.' 2>/dev/null || echo "[]")
   fi
 
+  # Compact JSON before passing to jq --argjson
+  blocks=$(echo "$blocks" | jq -c '.')
+  blocked_by=$(echo "$blocked_by" | jq -c '.')
+  relates_to=$(echo "$relates_to" | jq -c '.')
+
   # Output as JSON object
   jq -n \
     --argjson blocks "$blocks" \
