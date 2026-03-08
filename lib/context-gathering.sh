@@ -226,14 +226,24 @@ gather_context() {
 
     # Build story context
     local story_context
+    # Compact JSON to single line to avoid jq --argjson issues
+    local adr_context_compact
+    adr_context_compact=$(echo "$adr_context" | jq -c '.')
+    local plan_context_compact
+    plan_context_compact=$(echo "$plan_context" | jq -c '.')
+    local related_stories_compact
+    related_stories_compact=$(echo "$related_stories" | jq -c '.')
+    local last_refinement_snapshot_compact
+    last_refinement_snapshot_compact=$(echo "$last_refinement_snapshot" | jq -c '.')
+
     story_context=$(jq -n \
       --arg num "$story_num" \
       --arg title "$issue_title" \
       --arg body "$issue_body" \
-      --argjson adr_files "$adr_context" \
-      --argjson plan_files "$plan_context" \
-      --argjson related_stories "$related_stories" \
-      --argjson last_snapshot "$last_refinement_snapshot" \
+      --argjson adr_files "$adr_context_compact" \
+      --argjson plan_files "$plan_context_compact" \
+      --argjson related_stories "$related_stories_compact" \
+      --argjson last_snapshot "$last_refinement_snapshot_compact" \
       '{
         number: ($num | tonumber),
         title: $title,
@@ -246,11 +256,16 @@ gather_context() {
         last_refinement_snapshot: $last_snapshot
       }')
 
-    stories_json=$(echo "$stories_json" | jq --argjson story "$story_context" '. += [$story]')
+    # Compact story_context before passing to jq --argjson
+    local story_context_compact
+    story_context_compact=$(echo "$story_context" | jq -c '.')
+    stories_json=$(echo "$stories_json" | jq --argjson story "$story_context_compact" '. += [$story]')
   done
 
-  # Return payload
-  jq -n --argjson stories "$stories_json" '{stories: $stories}'
+  # Return payload (compact JSON to avoid jq --argjson issues)
+  local stories_json_compact
+  stories_json_compact=$(echo "$stories_json" | jq -c '.')
+  jq -n --argjson stories "$stories_json_compact" '{stories: $stories}'
 }
 
 # =============================================================================

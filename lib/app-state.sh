@@ -72,8 +72,8 @@ get_recent_closed_stories() {
     ((page++))
   done
 
-  # Extract issue numbers and format as GH-NNN
-  echo "$closed_issues" | jq -r '.[] | "GH-\(.number)"' 2>/dev/null || echo ""
+  # Extract issue numbers and format as GH-NNN, return as compact JSON array
+  echo "$closed_issues" | jq -c '[.[] | "GH-\(.number)"]' 2>/dev/null || echo "[]"
 }
 
 get_recent_modified_adr_files() {
@@ -109,8 +109,8 @@ get_recent_modified_adr_files() {
     done < <(find "$repo_root" -path "*adr*" -name "ADR-*.md" 2>/dev/null || echo "")
   done
 
-  # Return unique files
-  printf '%s\n' "${found_files[@]}" | sort -u | jq -R '.' | jq -s '.'
+  # Return unique files as compact JSON array
+  printf '%s\n' "${found_files[@]}" | sort -u | jq -R '.' | jq -s -c '.'
 }
 
 # =============================================================================
@@ -137,11 +137,12 @@ capture_app_state() {
   deployed_version=$(get_deployed_version "$repo_root")
 
   local recent_closed
-  recent_closed=$(get_recent_closed_stories "$repo" 7 2>/dev/null | jq -R '.' | jq -s '.' || echo "[]")
+  recent_closed=$(get_recent_closed_stories "$repo" 7 2>/dev/null || echo "[]")
 
   local recent_adr_files
   recent_adr_files=$(get_recent_modified_adr_files "$repo_root" 7 2>/dev/null || echo "[]")
 
+  # Variables are now already compact JSON arrays
   # Build JSON object
   jq -n \
     --arg timestamp "$timestamp" \

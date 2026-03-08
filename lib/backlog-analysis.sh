@@ -161,11 +161,11 @@ analyze_backlog() {
 
   # Separate by status
   local needs_refinement
-  needs_refinement=$(echo "$analysis_data" | jq '[.[] | select(.status == "needs-refinement")]')
+  needs_refinement=$(echo "$analysis_data" | jq -c '[.[] | select(.status == "needs-refinement")]')
   local dev_ready
-  dev_ready=$(echo "$analysis_data" | jq '[.[] | select(.status == "dev-ready")]')
+  dev_ready=$(echo "$analysis_data" | jq -c '[.[] | select(.status == "dev-ready")]')
   local new_stories
-  new_stories=$(echo "$analysis_data" | jq '[.[] | select(.status == "new")]')
+  new_stories=$(echo "$analysis_data" | jq -c '[.[] | select(.status == "new")]')
 
   # Return aggregated results
   jq -n \

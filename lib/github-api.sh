@@ -84,7 +84,10 @@ github_get_issues() {
       break
     fi
 
-    all_issues=$(jq -n --argjson prev "$all_issues" --argjson new "$response" '$prev + $new')
+    # Compact JSON to avoid jq --argjson issues
+    local response_compact
+    response_compact=$(echo "$response" | jq -c '.')
+    all_issues=$(jq -n --argjson prev "$all_issues" --argjson new "$response_compact" '$prev + $new')
     ((page++))
   done
 
