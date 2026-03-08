@@ -4,7 +4,8 @@ A token-efficient tool for analyzing and refining GitHub issues at scale using C
 
 ## Why Use This?
 
-- **Token efficient**: Batch refinement saves 60-75% on API costs vs. one-at-a-time processing
+- **Uses your Claude Pro credits**: Refinement happens via `/refine-backlog` skill in Claude Code — no separate API account needed
+- **Token efficient**: Batch refinement saves 60-75% on tokens vs. one-at-a-time processing
 - **Automated detection**: Identify stale, unclear, or dependency-blocked issues without manual review
 - **Audit trail**: Every refinement is logged with timestamps, git state, and assumptions captured
 - **Deterministic**: Uses bash for all logic that doesn't require judgment, avoiding unnecessary LLM calls
@@ -18,7 +19,7 @@ A token-efficient tool for analyzing and refining GitHub issues at scale using C
 - `jq` (JSON processor)
 - `git` with GitHub remote configured
 - GitHub token with `repo` scope
-- Anthropic API key (for refinement features)
+- Claude Code with Claude Pro or higher (for refinement via `/refine-backlog` skill)
 
 ### Installation
 
@@ -45,37 +46,33 @@ cd /path/to/your/github/repo
 # Option A: Run init script directly
 /path/to/backlog-refinement/scripts/init-refine-backlog \
   --repo owner/repo \
-  --token ghp_xxxxxxxxxxxx \
-  --api-key sk-ant-xxxxxxxxxxxx
+  --token ghp_xxxxxxxxxxxx
 
 # Option B: Use make from backlog-refinement directory
 cd /path/to/backlog-refinement
-make init REPO=owner/repo GITHUB_TOKEN=ghp_xxxxxxxxxxxx ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxx
+make init REPO=owner/repo GITHUB_TOKEN=ghp_xxxxxxxxxxxx
 ```
 
 This will:
-- Create `~/.local/refine-backlog.conf` (stores API tokens, shared across all repos)
+- Create `~/.local/refine-backlog.conf` (stores GitHub token, shared across all repos)
 - Initialize `refinement-log.json` in your repo (version-controlled, only `.lock` is gitignored)
-- Install the Claude skill definition to `~/.claude/commands/`
+- Install the Claude skill definition to `~/.claude/commands/refine-backlog.md`
 
-4. **API Token Sources**:
+4. **GitHub Token**:
 
-Obtain your tokens from:
+Obtain your token from:
 - **GitHub Token**: https://github.com/settings/tokens → Generate new token (classic) → Check `repo` scope
-- **Anthropic API Key**: https://console.anthropic.com/ → API Keys section
 
-Store them in `~/.local/refine-backlog.conf`:
+Store it in `~/.local/refine-backlog.conf`:
 ```bash
 GITHUB_TOKEN="ghp_xxxxxxxxxxxx"
-ANTHROPIC_API_KEY="sk-ant-xxxxxxxxxxxx"
 GITHUB_REPO="owner/repo"
 ```
 
-**Note**: All three can be overridden per-command with environment variables:
+**Note**: Can be overridden per-command with environment variable:
 ```bash
 # Override for a single command
 GITHUB_REPO=other/repo refine-backlog check
-ANTHROPIC_API_KEY=sk-ant-other refine-backlog refine --all
 GITHUB_TOKEN=ghp_other refine-backlog status
 ```
 
@@ -107,29 +104,30 @@ refine-backlog check --json > backlog.json
 - Stories whose body text has changed since last refinement
 - Stories blocked by dependencies that have been merged
 
-### Refine Stories
+### Refine Stories (Using Claude Code Skill)
 
-```bash
-# Refine all stories needing work
-refine-backlog refine --all
+In **Claude Code**, use the `/refine-backlog` skill:
 
-# Refine specific stories
-refine-backlog refine --ids GH-123,GH-124,GH-125
-
-# Preview changes without updating
-refine-backlog refine --all --dry-run
-
-# Interactive confirmation
-refine-backlog refine --all --confirm
+```
+/refine-backlog                    # Show status and next steps
+/refine-backlog --all              # Refine all stories needing work
+/refine-backlog --ids GH-1,GH-2   # Refine specific stories
+/refine-backlog --dry-run --all    # Preview changes without updating GitHub
 ```
 
 **Refinement does:**
-1. Gathers context: ADR documents, planning docs, related stories, app state
-2. Calls Claude with full context (5-15 stories per call)
-3. Updates issue bodies with clarified acceptance criteria, assumptions, dependencies
-4. Removes `needs-refinement` label
-5. Logs refinement in `refinement-log.json` with snapshot of app state
-6. Compares old/new app state to detect stale assumptions
+1. Checks which stories need refinement (bash)
+2. Gathers context: ADR documents, planning docs, related stories, app state (bash)
+3. Uses Claude's inference to refine stories with full context
+4. Updates issue bodies with clarified acceptance criteria, assumptions, dependencies (bash)
+5. Removes `needs-refinement` label (bash)
+6. Logs refinement in `refinement-log.json` with snapshot of app state (bash)
+7. Compares old/new app state to detect stale assumptions
+
+**Why this design?**
+- Bash for deterministic I/O (fast, auditable, no LLM calls)
+- Claude for inference (uses your Claude Pro credits, batches stories efficiently)
+- No separate Anthropic API account needed
 
 ### Check Status
 
@@ -163,21 +161,20 @@ Created during `init-refine-backlog.sh`. Edit to customize:
 # GitHub token for API access
 GITHUB_TOKEN="ghp_xxxxxxxxxxxx"
 
-# Anthropic API key for Claude
-ANTHROPIC_API_KEY="sk-ant-xxxxxxxxxxxxx"
-
 # Target repository
 GITHUB_REPO="owner/repo"
 
 # Logging level: info, debug, error
 LOG_LEVEL="info"
 
-# Max stories per Claude call (default 10)
+# Max stories per refinement call (default 10)
 BATCH_SIZE="10"
 
 # Days of inactivity to flag for refinement (default 28)
 MIN_DAYS_TO_REFINEMENT="28"
 ```
+
+Note: Refinement uses Claude's inference via `/refine-backlog` skill in Claude Code, which uses your Claude Pro credits. No Anthropic API key needed.
 
 ### Using Labels
 
@@ -215,28 +212,34 @@ backlog-refinement/
 
 ### Architecture
 
+**Phase 1: Analysis (No LLM)**
+
 ```
 Your GitHub Repo
     ↓
 refine-backlog check
-    ↓ (No LLM calls - pure bash analysis)
-refinement-log.json
+    ↓ (pure bash, no API calls)
+refinement-log.json updated with current state
     ↓
-↓→ "GH-123 needs refinement (label)"
-↓→ "GH-124 needs refinement (28 days old)"
-↓→ "GH-125 is dev-ready"
+Shows:
+  - "GH-123 needs refinement (label)"
+  - "GH-124 needs refinement (28 days old)"
+  - "GH-125 is dev-ready"
 ```
 
-Then:
+**Phase 2: Refinement (Claude + Bash)**
 
 ```
-refine-backlog refine --all
+/refine-backlog --all (in Claude Code)
     ↓
-gather_context()
-    ↓ (Find ADRs, plans, related stories)
-call_claude_api()
-    ↓ (Batch: 5-15 stories per call)
-Claude returns refined bodies + notes
+refine-backlog check --json (bash)
+    ↓
+refine-backlog gather-context --ids ... (bash)
+    ↓
+[Claude refines stories using context]
+(uses your Claude Pro credits via chat)
+    ↓
+refine-backlog apply-refinement (bash)
     ↓
 update_github()
     ↓ (Update issue bodies, remove label)
@@ -244,6 +247,8 @@ update_log()
     ↓ (Log refinement, capture app state)
 refinement-log.json updated
 ```
+
+**Design principle**: Bash for data (deterministic, auditable), Claude for judgment (inference).
 
 ### The Refinement Log
 
@@ -320,48 +325,47 @@ Claude refines stories by:
 
 ## Examples
 
-### Example 1: Refine a Single Story
+### Example 1: Check Backlog Status
 
 ```bash
-refine-backlog refine --ids GH-42
+refine-backlog check
 
 # Output:
-# ℹ Refining 1 story...
-# ℹ Gathering context for GH-42...
-# ℹ Context gathered: 2 ADRs, 1 plan, 2 related stories
-# ℹ Calling Claude API...
-# ℹ Updated GH-42: "Better error messages for auth failures"
-# ✓ Refinement complete
+# Stories needing refinement: 3
+# New stories: 2
+# Dev-ready stories: 5
 ```
 
-### Example 2: Dry-Run Before Refining All
+### Example 2: Refine in Claude Code
 
-```bash
-refine-backlog refine --all --dry-run
+In Claude Code session:
 
-# Output:
-# ℹ Analyzing backlog...
-# ℹ 3 stories need refinement (dry-run mode)
-#   • GH-101: User auth overhaul (28 days old)
-#   • GH-105: Rate limiting (has needs-refinement label)
-#   • GH-110: Caching layer (body changed)
-#
-# Would refine 3 stories in 1 batch
-# Would call Claude API 1 time
-# Estimated tokens: ~15,000
+```
+/refine-backlog --all
+
+✓ Analyzing backlog... Found 3 stories needing refinement
+✓ Gathering context... 2 ADRs, 1 plan, 2 related stories
+✓ Refining with Claude... (using your chat credits)
+✓ Updated GH-101: "User auth overhaul" — stale OAuth assumption fixed
+✓ Updated GH-105: "Rate limiting" — clarified acceptance criteria
+✓ Updated GH-110: "Caching layer" — added dependency on GH-105
+✓ Refinement complete! 3 stories updated, log saved
 ```
 
-### Example 3: Interactive Refinement
+### Example 3: Dry-Run Preview
 
-```bash
-refine-backlog refine --all --confirm
+In Claude Code:
 
-# Prompts:
-# ℹ 3 stories need refinement
-# Continue? (y/n) y
-# ℹ Refining batch 1/1 (3 stories)...
-# ✓ Refinement complete
 ```
+/refine-backlog --ids GH-101,GH-105 --dry-run
+
+✓ Would refine 2 stories:
+  - GH-101: "User auth overhaul"
+    Context: 2 ADRs, 1 plan, 1 related story
+  - GH-105: "Rate limiting"
+    Context: 1 ADR, 2 related stories
+
+(No changes applied)
 
 ## Troubleshooting
 
@@ -380,7 +384,7 @@ You haven't initialized the repo yet.
 
 **Fix**: Run the init script in your target repository:
 ```bash
-/path/to/backlog-refinement/scripts/init-refine-backlog --repo owner/repo --token $GITHUB_TOKEN --api-key $ANTHROPIC_API_KEY
+/path/to/backlog-refinement/scripts/init-refine-backlog --repo owner/repo --token $GITHUB_TOKEN
 ```
 
 ### "jq: invalid JSON text passed to --argjson"
@@ -391,11 +395,10 @@ This usually means JSON containing special characters wasn't properly escaped.
 
 ### "Rate limit exceeded"
 
-GitHub or Anthropic API rate limits were hit.
+GitHub API rate limit was hit (refinement uses Claude Code, not GitHub API).
 
-**Fix**: The system automatically waits and retries. Check your API usage:
+**Fix**: The system automatically waits and retries. Check your GitHub API usage:
 - GitHub: https://github.com/settings/personal-access-tokens/
-- Anthropic: https://console.anthropic.com/
 
 ## Advanced Configuration
 
@@ -405,7 +408,7 @@ All configuration values can come from environment variables (highest priority) 
 
 ```bash
 # Env vars override config file
-GITHUB_TOKEN=ghp_xxx ANTHROPIC_API_KEY=sk-ant-xxx GITHUB_REPO=owner/repo refine-backlog check
+GITHUB_TOKEN=ghp_xxx GITHUB_REPO=owner/repo refine-backlog check
 ```
 
 ### Custom Batch Size
@@ -435,16 +438,16 @@ LOG_FILE="/path/to/custom-log.json" refine-backlog check
 
 ## Integration Examples
 
-### GitHub Actions (Scheduled Refinement)
+### GitHub Actions (Scheduled Analysis)
 
 ```yaml
-name: Refine Backlog Daily
+name: Analyze Backlog Daily
 on:
   schedule:
     - cron: '0 9 * * MON'  # Every Monday at 9am
 
 jobs:
-  refine:
+  analyze:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -452,25 +455,46 @@ jobs:
         run: |
           mkdir -p ~/.local
           echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> ~/.local/refine-backlog.conf
-          echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" >> ~/.local/refine-backlog.conf
       - name: Analyze backlog
         run: |
           refine-backlog check --details
+      - name: Update log
+        run: |
+          refine-backlog update-log
+      - name: Commit changes
+        run: |
+          git add refinement-log.json
+          git commit -m "chore: update backlog analysis" || true
+          git push
 ```
 
-### Pre-Sprint Planning
+**Note**: For refinement, use `/refine-backlog` in Claude Code (not in CI/CD), since refinement requires Claude's inference.
 
+### Pre-Sprint Planning Workflow
+
+1. **Terminal**: Analyze backlog
 ```bash
-#!/bin/bash
-# Refine backlog before sprint planning meeting
-
-refine-backlog check --json > backlog-status.json
-refine-backlog refine --all --dry-run > refinement-preview.txt
-
-echo "Backlog status saved to backlog-status.json"
-echo "Refinement preview saved to refinement-preview.txt"
-echo "Review and commit before sprint planning"
+refine-backlog check --details
 ```
+
+2. **Claude Code**: Refine stories (preview)
+```
+/refine-backlog --dry-run --all
+```
+
+3. **Claude Code**: Apply refinements (if preview looks good)
+```
+/refine-backlog --all
+```
+
+4. **Terminal**: Commit changes
+```bash
+git add refinement-log.json
+git commit -m "refine: update stories before sprint"
+git push
+```
+
+Review refined stories in GitHub before sprint planning meeting.
 
 ### CI/CD Pipeline
 

@@ -85,24 +85,6 @@ github_token() {
   fail "GitHub token not found. Set GITHUB_TOKEN env var or run: refine-backlog init"
 }
 
-anthropic_api_key() {
-  # Try env var first
-  if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
-    echo "$ANTHROPIC_API_KEY"
-    return 0
-  fi
-
-  # Try config file
-  if [[ -f "${HOME}/.local/refine-backlog.conf" ]]; then
-    if grep -q "^ANTHROPIC_API_KEY=" "${HOME}/.local/refine-backlog.conf" 2>/dev/null; then
-      grep "^ANTHROPIC_API_KEY=" "${HOME}/.local/refine-backlog.conf" | cut -d'=' -f2 | tr -d '"'
-      return 0
-    fi
-  fi
-
-  fail "Anthropic API key not found. Set ANTHROPIC_API_KEY env var or run: refine-backlog init"
-}
-
 github_repo() {
   # Try env var first
   if [[ -n "${GITHUB_REPO:-}" ]]; then
@@ -306,7 +288,7 @@ days_since() {
 # Make functions available when sourced
 export -f log_info log_warn log_error log_debug log_success
 export -f fail require_command require_env
-export -f github_token anthropic_api_key github_repo log_level
+export -f github_token github_repo log_level
 export -f json_validate jq_filter json_to_var
 export -f ensure_file ensure_dir file_hash hash_string
 export -f acquire_lock release_lock

@@ -84,7 +84,11 @@ github_get_issues() {
   while true; do
     local page_endpoint="${endpoint}&page=$page"
     local response
-    response=$(_github_api_call "GET" "$page_endpoint") || return 1
+    # Suppress error output for pagination (422 on high page numbers is expected)
+    if ! response=$(_github_api_call "GET" "$page_endpoint" "" 0 2>/dev/null); then
+      # API call failed (e.g., invalid page number), assume we've reached the end
+      break
+    fi
 
     if [[ -z "$response" || "$response" == "[]" ]]; then
       break
