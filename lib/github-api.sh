@@ -127,19 +127,37 @@ github_get_issue_links() {
   # Look for patterns like "blocks #123" or "blocked by #456"
   if [[ -n "$body" ]]; then
     # Extract numbers from blocks pattern
-    blocks=$(echo "$body" | grep -oE "(blocks|closes|fixes)\s+#[0-9]+" | grep -oE "[0-9]+" | jq -R 'tonumber' | jq -s '.' 2>/dev/null || echo "[]")
+    local blocks_nums
+    blocks_nums=$(echo "$body" | grep -oE "(blocks|closes|fixes)\s+#[0-9]+" | grep -oE "[0-9]+" || echo "")
+    if [[ -n "$blocks_nums" ]]; then
+      blocks=$(echo "$blocks_nums" | jq -R 'tonumber' | jq -s '.' 2>/dev/null || echo "[]")
+    else
+      blocks="[]"
+    fi
 
     # Extract numbers from blocked_by pattern
-    blocked_by=$(echo "$body" | grep -oE "(blocked\s+by|depends\s+on)\s+#[0-9]+" | grep -oE "[0-9]+" | jq -R 'tonumber' | jq -s '.' 2>/dev/null || echo "[]")
+    local blocked_by_nums
+    blocked_by_nums=$(echo "$body" | grep -oE "(blocked\s+by|depends\s+on)\s+#[0-9]+" | grep -oE "[0-9]+" || echo "")
+    if [[ -n "$blocked_by_nums" ]]; then
+      blocked_by=$(echo "$blocked_by_nums" | jq -R 'tonumber' | jq -s '.' 2>/dev/null || echo "[]")
+    else
+      blocked_by="[]"
+    fi
 
     # Extract numbers from relates_to pattern
-    relates_to=$(echo "$body" | grep -oE "(relates\s+to|related\s+to)\s+#[0-9]+" | grep -oE "[0-9]+" | jq -R 'tonumber' | jq -s '.' 2>/dev/null || echo "[]")
+    local relates_to_nums
+    relates_to_nums=$(echo "$body" | grep -oE "(relates\s+to|related\s+to)\s+#[0-9]+" | grep -oE "[0-9]+" || echo "")
+    if [[ -n "$relates_to_nums" ]]; then
+      relates_to=$(echo "$relates_to_nums" | jq -R 'tonumber' | jq -s '.' 2>/dev/null || echo "[]")
+    else
+      relates_to="[]"
+    fi
   fi
 
-  # Compact JSON before passing to jq --argjson
-  blocks=$(echo "$blocks" | jq -c '.')
-  blocked_by=$(echo "$blocked_by" | jq -c '.')
-  relates_to=$(echo "$relates_to" | jq -c '.')
+  # Compact JSON before passing to jq --argjson (ensure valid JSON)
+  blocks=$(echo "$blocks" | jq -c '.' 2>/dev/null || echo "[]")
+  blocked_by=$(echo "$blocked_by" | jq -c '.' 2>/dev/null || echo "[]")
+  relates_to=$(echo "$relates_to" | jq -c '.' 2>/dev/null || echo "[]")
 
   # Output as JSON object
   jq -n \

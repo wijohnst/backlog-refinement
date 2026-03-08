@@ -4,8 +4,14 @@
 setup() {
   load ../test_helper
   load_common
-  load_mocks
   source "$REPO_DIR/lib/github-api.sh"
+
+  # Unset real functions to be replaced by mocks
+  unset -f _github_api_call
+  unset -f get_deployed_version
+
+  # Now load mocks (they will override the unset functions)
+  load_mocks
 }
 
 # =============================================================================
@@ -90,9 +96,9 @@ setup() {
 @test "github_get_issue_links returns arrays" {
   local links=$(github_get_issue_links "test/repo" 123)
 
-  [ "$(json_get "$links" '.blocks | type')" = '"array"' ]
-  [ "$(json_get "$links" '.blocked_by | type')" = '"array"' ]
-  [ "$(json_get "$links" '.relates_to | type')" = '"array"' ]
+  [ "$(echo "$links" | jq -r '.blocks | type')" = "array" ]
+  [ "$(echo "$links" | jq -r '.blocked_by | type')" = "array" ]
+  [ "$(echo "$links" | jq -r '.relates_to | type')" = "array" ]
 }
 
 # =============================================================================

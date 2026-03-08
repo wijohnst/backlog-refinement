@@ -4,9 +4,16 @@
 setup() {
   load ../test_helper
   load_common
-  load_mocks
+  source "$REPO_DIR/lib/github-api.sh"
   source "$REPO_DIR/lib/log-management.sh"
   source "$REPO_DIR/lib/backlog-analysis.sh"
+
+  # Unset real GitHub API functions to be replaced by mocks
+  unset -f _github_api_call
+  unset -f get_deployed_version
+
+  # Now load mocks
+  load_mocks
   setup_test_env
 }
 
