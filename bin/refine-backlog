@@ -20,10 +20,19 @@ source "$PROJECT_ROOT/lib/log-management.sh"
 source "$PROJECT_ROOT/lib/backlog-analysis.sh"
 source "$PROJECT_ROOT/lib/context-gathering.sh"
 
+# Load local config from repo root (if it exists)
+if load_local_config; then
+  export _LOCAL_CONFIG_LOADED=1
+  # Make sure GITHUB_REPO_LOCAL is set for github_repo() function
+  if [[ -n "${GITHUB_REPO:-}" ]]; then
+    export GITHUB_REPO_LOCAL="$GITHUB_REPO"
+  fi
+fi
+
 # Configuration
 readonly LOG_FILE="${LOG_FILE:-.}/refinement-log.json"
 readonly LOCK_FILE="${LOG_FILE}.lock"
-readonly BATCH_SIZE="${BATCH_SIZE:-10}"
+readonly BATCH_SIZE="${BATCH_SIZE:-$(get_batch_size)}"
 
 # =============================================================================
 # HELP & VERSION
@@ -93,70 +102,70 @@ cmd_init() {
     fail "Not a git repository"
   fi
 
-  # Step 1: Install CLI globally if not already done
-  local bin_dir="${HOME}/.local/bin"
-  local cli_link="${bin_dir}/refine-backlog"
-
-  if [[ ! -L "$cli_link" ]]; then
-    log_info "Installing CLI globally..."
-    if [[ ! -d "$bin_dir" ]]; then
-      mkdir -p "$bin_dir"
-    fi
-
-    local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    ln -s "$script_dir/refine-backlog" "$cli_link"
-    chmod +x "$cli_link"
-    log_success "Installed: $cli_link"
-    log_info "To use refine-backlog in future terminals, add to your shell profile:"
-    log_info "  export PATH=\"${bin_dir}:\$PATH\""
-  fi
-
-  # Step 2: Get repo info
+  # Step 1: Get repo info
   local repo
-  repo=$(github_repo)
-
-  log_info "Repository: $repo"
-
-  # Step 3: Check GitHub token
-  if [[ -z "${GITHUB_TOKEN:-}" ]]; then
-    log_warn "GITHUB_TOKEN env var not set"
-    log_info "You will need to set it in the config file"
+  repo=$(git config --get remote.origin.url 2>/dev/null || echo "")
+  if [[ -n "$repo" ]]; then
+    # Extract owner/repo from URL
+    if [[ "$repo" =~ github\.com[:/]([^/]+)/(.+)\.git$ ]]; then
+      repo="${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
+    fi
   fi
 
-  # Step 4: Create config directory and file
+  if [[ -z "$repo" ]]; then
+    fail "Could not auto-detect repo. Ensure remote origin points to GitHub"
+  fi
+
+  log_success "Repository: $repo"
+
+  # Step 2: Create local config file (.refine-backlog.conf in repo root)
+  local local_config_file="./.refine-backlog.conf"
+  if [[ ! -f "$local_config_file" ]]; then
+    cat > "$local_config_file" <<EOF
+# Backlog Refinement System - Local Configuration
+# Safe to commit to git (no secrets here)
+
+GITHUB_REPO="$repo"
+LOG_LEVEL="info"
+ADR_PATTERNS=("docs/adr/ADR-*.md" "adr/*.md")
+PLAN_PATTERNS=("planning/*-plan.md" "docs/planning/*-plan.md")
+MIN_DAYS_TO_REFINEMENT="28"
+BATCH_SIZE="10"
+EOF
+    log_success "Created local config: $local_config_file"
+  else
+    log_info "Local config already exists: $local_config_file"
+  fi
+
+  # Step 3: Create global config (secrets only)
   local config_dir="${HOME}/.local"
   ensure_dir "$config_dir"
 
   local config_file="$config_dir/refine-backlog.conf"
   if [[ ! -f "$config_file" ]]; then
     cat > "$config_file" <<EOF
-# Backlog Refinement System Configuration
+# Backlog Refinement System - Global Configuration
+# Secrets only (do NOT commit to git)
 
-# GitHub API token (required)
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
-
-# GitHub repository (auto-detected if in git repo)
-GITHUB_REPO="$repo"
-
-# Logging level: info, debug
 LOG_LEVEL="info"
-
-# ADR file patterns (space-separated)
-ADR_PATTERNS=("docs/adr/ADR-*.md" "adr/*.md")
-
-# Plan file patterns (space-separated)
-PLAN_PATTERNS=("planning/*-plan.md" "docs/planning/*-plan.md")
-
-# Days before a story is considered "stale" for refinement
-MIN_DAYS_TO_REFINEMENT="28"
-
-# Stories per refinement call
-BATCH_SIZE="10"
 EOF
-    log_success "Created config file: $config_file"
+    log_success "Created global config: $config_file"
     log_info "Edit this file to add your GitHub token if needed"
   else
-    log_info "Config file already exists: $config_file"
+    log_info "Global config already exists: $config_file"
+  fi
+
+  # Step 4: Install CLI symlink
+  local bin_dir="${HOME}/.local/bin"
+  ensure_dir "$bin_dir"
+
+  local cli_link="${bin_dir}/refine-backlog"
+  if [[ ! -L "$cli_link" ]]; then
+    ln -s "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/refine-backlog" "$cli_link"
+    chmod +x "$cli_link"
+    log_success "Installed CLI: $cli_link"
+    log_info "Add to PATH with: export PATH=\"${bin_dir}:\$PATH\""
   fi
 
   # Step 5: Initialize refinement log
@@ -167,15 +176,22 @@ EOF
     log_info "Refinement log already exists: $LOG_FILE"
   fi
 
-  # Step 6: Add to .gitignore
+  # Step 6: Update .gitignore
   if [[ -f .gitignore ]]; then
-    if ! grep -q "refinement-log.json" .gitignore 2>/dev/null; then
+    if ! grep -q "refinement-log.json.lock" .gitignore 2>/dev/null; then
       echo "refinement-log.json.lock" >> .gitignore
       log_success "Added lock file to .gitignore"
     fi
+  else
+    echo "refinement-log.json.lock" > .gitignore
+    log_success "Created .gitignore with lock file"
   fi
 
   log_success "Initialization complete!"
+  log_info "Configuration files:"
+  log_info "  Local (commit to git): $local_config_file"
+  log_info "  Global (secrets only): $config_file"
+  log_info ""
   log_info "Next steps:"
   log_info "  1. If needed, update GitHub token in: $config_file"
   log_info "  2. Run: refine-backlog check"

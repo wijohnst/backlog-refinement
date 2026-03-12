@@ -67,6 +67,43 @@ require_env() {
 # CONFIG MANAGEMENT
 # =============================================================================
 
+# Find local config by walking up from current directory
+find_local_config() {
+  local current_dir="$PWD"
+  local max_depth=20
+  local depth=0
+
+  while [[ $depth -lt $max_depth ]]; do
+    if [[ -f "$current_dir/.refine-backlog.conf" ]]; then
+      echo "$current_dir/.refine-backlog.conf"
+      return 0
+    fi
+
+    # Stop at git root or filesystem root
+    if [[ "$current_dir" == "/" ]]; then
+      return 1
+    fi
+
+    current_dir="$(cd "$current_dir/.." 2>/dev/null && pwd)"
+    ((depth++)) || true
+  done
+
+  return 1
+}
+
+# Load local config file into shell variables
+load_local_config() {
+  local config_file
+  config_file=$(find_local_config) || return 0
+
+  if [[ -f "$config_file" ]]; then
+    log_debug "Loading local config: $config_file"
+    # Source the config file safely
+    # shellcheck disable=SC1090
+    source "$config_file" 2>/dev/null || true
+  fi
+}
+
 github_token() {
   # Try env var first
   if [[ -n "${GITHUB_TOKEN:-}" ]]; then
@@ -74,7 +111,7 @@ github_token() {
     return 0
   fi
 
-  # Try config file
+  # Try global config file (for secrets only)
   if [[ -f "${HOME}/.local/refine-backlog.conf" ]]; then
     if grep -q "^GITHUB_TOKEN=" "${HOME}/.local/refine-backlog.conf" 2>/dev/null; then
       grep "^GITHUB_TOKEN=" "${HOME}/.local/refine-backlog.conf" | cut -d'=' -f2 | tr -d '"'
@@ -86,18 +123,22 @@ github_token() {
 }
 
 github_repo() {
+  # Priority order:
+  # 1. Env var (CI/automation override)
+  # 2. Local .refine-backlog.conf (project-specific)
+  # 3. Git auto-detect from origin
+  # 4. Fail
+
   # Try env var first
   if [[ -n "${GITHUB_REPO:-}" ]]; then
     echo "$GITHUB_REPO"
     return 0
   fi
 
-  # Try config file
-  if [[ -f "${HOME}/.local/refine-backlog.conf" ]]; then
-    if grep -q "^GITHUB_REPO=" "${HOME}/.local/refine-backlog.conf" 2>/dev/null; then
-      grep "^GITHUB_REPO=" "${HOME}/.local/refine-backlog.conf" | cut -d'=' -f2 | tr -d '"'
-      return 0
-    fi
+  # Try local config file (project-specific)
+  if [[ -n "${_LOCAL_CONFIG_LOADED:-}" ]] && [[ -n "${GITHUB_REPO_LOCAL:-}" ]]; then
+    echo "$GITHUB_REPO_LOCAL"
+    return 0
   fi
 
   # Try git remote origin
@@ -115,7 +156,40 @@ github_repo() {
     fi
   fi
 
-  fail "GitHub repo not found. Set GITHUB_REPO env var or run in a git repo with origin remote"
+  fail "GitHub repo not found. Set GITHUB_REPO env var, create .refine-backlog.conf in repo root, or run in a git repo with origin remote"
+}
+
+# Config getter functions with fallback defaults
+get_adr_patterns() {
+  if [[ -n "${ADR_PATTERNS:-}" ]]; then
+    echo "$ADR_PATTERNS"
+  else
+    echo '"docs/adr/ADR-*.md" "adr/*.md"'
+  fi
+}
+
+get_plan_patterns() {
+  if [[ -n "${PLAN_PATTERNS:-}" ]]; then
+    echo "$PLAN_PATTERNS"
+  else
+    echo '"planning/*-plan.md" "docs/planning/*-plan.md"'
+  fi
+}
+
+get_min_days() {
+  if [[ -n "${MIN_DAYS_TO_REFINEMENT:-}" ]]; then
+    echo "$MIN_DAYS_TO_REFINEMENT"
+  else
+    echo "28"
+  fi
+}
+
+get_batch_size() {
+  if [[ -n "${BATCH_SIZE:-}" ]]; then
+    echo "$BATCH_SIZE"
+  else
+    echo "10"
+  fi
 }
 
 log_level() {
@@ -288,7 +362,9 @@ days_since() {
 # Make functions available when sourced
 export -f log_info log_warn log_error log_debug log_success
 export -f fail require_command require_env
+export -f find_local_config load_local_config
 export -f github_token github_repo log_level
+export -f get_adr_patterns get_plan_patterns get_min_days get_batch_size
 export -f json_validate jq_filter json_to_var
 export -f ensure_file ensure_dir file_hash hash_string
 export -f acquire_lock release_lock
